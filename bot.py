@@ -9,6 +9,7 @@ from datetime import datetime
 import codecs
 import os
 import urllib2
+from getConfigs import getConfigs
 
 
 def log(msg):
@@ -58,12 +59,36 @@ def handle(msg):
             else:
                 reply="Comando desconocido"
         else:
-            reply="Nah, de momento no sé hablar contigo"
+            if command.find("http://")>=0 or command.find("https://")>=0:
+                html=urllib2.urlopen(command).read()
+                position=html.find("_frame1")
+                if position<0:
+                    position=html.find("_smart1")
+
+                if position>0:
+                    id=html[position-17:position]
+
+                    video="https://vt.media.tumblr.com/tumblr_"+id+"_480.mp4"
+                    
+                    try:
+                        urllib2.urlopen(video)
+                        with open(id+".mp4",'wb') as f:
+                            f.write(urllib2.urlopen(video).read())
+                        with open(id+".mp4",'r') as f:
+                            bot.sendVideo(chat_id, f)
+                        os.remove(id+".mp4")
+                    except:
+                        reply="Video bloqueado"
+                else:
+                    reply="No se ha encontrado :("
+            else:
+                reply="Nah, de momento no sé hablar contigo"
         
-        bot.sendMessage(chat_id, reply)
+        if reply!="":
+            bot.sendMessage(chat_id, reply)
 
 
-TOKEN = sys.argv[1]  # get token from command-line
+TOKEN = getConfigs()
 
 bot = telepot.Bot(TOKEN)
 MessageLoop(bot, handle).run_as_thread()
