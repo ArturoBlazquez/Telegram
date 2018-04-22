@@ -1,0 +1,6 @@
+#compiled files
+*.pyc
+
+#Configuration file
+config
+log.log
