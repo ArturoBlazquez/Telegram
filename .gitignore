@@ -3,4 +3,4 @@
 
 #Configuration file
 config
-log.log
+*.log

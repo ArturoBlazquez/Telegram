@@ -16,6 +16,18 @@ from getConfigs import getConfigs
 def log(msg):
     with codecs.open(os.path.join(os.path.dirname(__file__), 'log.log'), "a", "utf-8") as f:
         f.write(msg+'\n')
+        
+
+def msgGlance(msg):
+        content_type, chat_type, chat_id = telepot.glance(msg)
+        if content_type=='text':
+            date=datetime.fromtimestamp(msg['date']).strftime("%Y-%m-%d %H:%M:%S")
+            name=msg["from"]["first_name"]
+            name_id=msg["from"]["id"]
+            text=msg["text"]
+        else:
+            date,name,name_id,text=["no","no","no","no"]
+        return [content_type, chat_id, date, name, name_id, text]
 
 def isUrl(msg):
     if msg.find("http://")>=0 or msg.find("https://")>=0:
@@ -70,18 +82,18 @@ class MessageHandler(telepot.helper.ChatHandler):
         super(MessageHandler, self).__init__(*args, **kwargs)
 
     def on_chat_message(self, msg):
-        content_type, chat_type, chat_id = telepot.glance(msg)
+        content_type, chat_id, date, name, name_id, text = msgGlance(msg)
         
-        # group message
-        if chat_id < 0:
-            log('Received a %s from %s, by %s' % (content_type, m.chat, m.from_))
-        
-        # private message
-        else:
-            log("Received %s from %s at %s" %(msg['text'], msg['from']['username'], datetime.fromtimestamp(msg['date']).strftime("%Y-%m-%d %H:%M:%S")))
-        
-        #Just handle text, no queries, inline or whatever
         if content_type == 'text':
+            # group message
+            if chat_id < 0:
+                reply=''
+                log("[%s] Received \"%s\" from %s(%s) at group %s" % (date, text, name, name_id, chat_id))
+            # private message
+            else:
+                reply=''
+                log("[%s] Received \"%s\" from %s(%s)" %(date, text, name, name_id))
+            
             reply = ''
             command = msg['text'].strip().lower()
             
@@ -118,7 +130,7 @@ bot = telepot.DelegatorBot(TOKEN, [
     ),
 ])
 MessageLoop(bot).run_as_thread()
-log('Listening ...')
+log('Listening '+datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 while 1:
     time.sleep(10)
