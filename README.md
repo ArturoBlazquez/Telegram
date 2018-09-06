@@ -1,4 +1,4 @@
-## Synopsis
+## Telegram bot
 
 Simple telegram bot that returns your IP and downloads tumblr videos
 
