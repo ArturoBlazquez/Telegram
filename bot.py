@@ -2,14 +2,15 @@
 import sys
 import time
 import telepot
-import telepot.namedtuple
+from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 from telepot.loop import MessageLoop
-from telepot.delegate import per_chat_id, create_open, pave_event_space
+from telepot.delegate import per_chat_id, per_callback_query_origin, create_open, pave_event_space
 
 from datetime import datetime
 import codecs
 import os
 import urllib2
+import random
 from getConfigs import getConfigs
 
 
@@ -95,6 +96,7 @@ class MessageHandler(telepot.helper.ChatHandler):
                 log("[%s] Received \"%s\" from %s(%s)" %(date, text, name, name_id))
             
             reply = ''
+            keyboard = ''
             command = msg['text'].strip().lower()
             
             #Commands
@@ -105,6 +107,11 @@ class MessageHandler(telepot.helper.ChatHandler):
                     reply=urllib2.urlopen('http://ipinfo.io/ip').read()
                 elif command == "newest":
                     reply=getNewest()
+                elif command == "mariokart":
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text='Copa', callback_data='copa')],
+                        [InlineKeyboardButton(text='Mapas', callback_data='mapas')]
+                    ])
                 elif command == "start":
                     reply="Hola 😊"
                 elif command == "help":
@@ -120,14 +127,41 @@ class MessageHandler(telepot.helper.ChatHandler):
             
             if reply!="":
                 bot.sendMessage(chat_id, reply)
+            elif keyboard!="":
+                bot.sendMessage(chat_id, "Elige una opción", reply_markup=keyboard)
+
+
+class QueryHandler(telepot.helper.CallbackQueryOriginHandler):
+    def __init__(self, *args, **kwargs):
+        super(QueryHandler, self).__init__(*args, **kwargs)
+    
+    def on_callback_query(self, msg):
+        query_id, chat_id, query_data = telepot.glance(msg, flavor='callback_query')
+        log("Callback Query: \"%s\" from %s(%s)" %(query_data, chat_id, query_id))
+        
+        reply = ''
+        
+        if query_data == "copa":
+            reply = str(random.randint(1,8))
+        elif query_data == "mapas":
+            maps = [str(i)+'-'+str(j) for i in range(1,9) for j in range(1,5)]
+            chosen = random.sample(maps, 4)
+            reply = '\n'.join(chosen)
+        
+        if reply!="":
+            self._editor.editMessageText(reply, reply_markup=None)
+
+
+
 
 
 TOKEN = getConfigs()
 
 bot = telepot.DelegatorBot(TOKEN, [
     pave_event_space()(
-        per_chat_id(), create_open, MessageHandler, timeout=10
-    ),
+        per_chat_id(), create_open, MessageHandler, timeout=10),
+    pave_event_space()(
+        per_callback_query_origin(), create_open, QueryHandler, timeout=10),
 ])
 MessageLoop(bot).run_as_thread()
 log('Listening '+datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
